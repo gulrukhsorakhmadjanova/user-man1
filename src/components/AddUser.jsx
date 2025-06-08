@@ -7,7 +7,7 @@ const UserForm = ({ onClose, onUserAdded }) => {
     name: "",
     email: "",
     password_hash: "",
-    status: "active" // Add default status
+    status: "active"
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -15,13 +15,13 @@ const UserForm = ({ onClose, onUserAdded }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     // Validate inputs
     const newErrors = {};
     if (!formData.name.trim()) newErrors.name = "Name is required";
     if (!formData.email.trim()) newErrors.email = "Email is required";
     if (!formData.password_hash) newErrors.password_hash = "Password is required";
-    
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       setIsSubmitting(false);
@@ -34,20 +34,20 @@ const UserForm = ({ onClose, onUserAdded }) => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password_hash: formData.password_hash,
-          status: formData.status
-        })
+        body: JSON.stringify(formData)
       });
 
       const responseText = await response.text();
-      
+
       if (!response.ok) {
-        throw new Error(responseText.includes('{') 
-          ? JSON.parse(responseText).error 
-          : responseText);
+        // Try parse JSON error message
+        let errorMessage = responseText;
+        try {
+          const errJson = JSON.parse(responseText);
+          errorMessage = errJson.details || errJson.error || responseText;
+        } catch {}
+
+        throw new Error(errorMessage);
       }
 
       const newUser = JSON.parse(responseText);
@@ -78,7 +78,7 @@ const UserForm = ({ onClose, onUserAdded }) => {
           {errors.general}
         </Alert>
       )}
-      
+
       <div>
         <Label htmlFor="name" value="Full Name" />
         <TextInput
@@ -88,9 +88,10 @@ const UserForm = ({ onClose, onUserAdded }) => {
           onChange={handleChange}
           color={errors.name ? "failure" : "gray"}
           helperText={errors.name}
+          required
         />
       </div>
-      
+
       <div>
         <Label htmlFor="email" value="Email" />
         <TextInput
@@ -101,9 +102,10 @@ const UserForm = ({ onClose, onUserAdded }) => {
           onChange={handleChange}
           color={errors.email ? "failure" : "gray"}
           helperText={errors.email}
+          required
         />
       </div>
-      
+
       <div>
         <Label htmlFor="password_hash" value="Password" />
         <TextInput
@@ -114,6 +116,7 @@ const UserForm = ({ onClose, onUserAdded }) => {
           onChange={handleChange}
           color={errors.password_hash ? "failure" : "gray"}
           helperText={errors.password_hash}
+          required
         />
       </div>
 
@@ -130,12 +133,13 @@ const UserForm = ({ onClose, onUserAdded }) => {
           <option value="blocked">Blocked</option>
         </select>
       </div>
-      
+
       <div className="flex justify-end gap-2 pt-4">
         <Button 
           color="gray" 
           onClick={onClose}
           disabled={isSubmitting}
+          type="button"
         >
           Cancel
         </Button>

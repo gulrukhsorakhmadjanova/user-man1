@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { Button, Label, TextInput, Alert } from "flowbite-react";
-import { API_URL } from "../constants";
+
+const API_URL = "http://localhost:5000/user-management-api/users";
 
 const EditUserForm = ({ userData, onClose, onUserUpdated }) => {
   const [formData, setFormData] = useState({
     name: userData.name || "",
     email: userData.email || "",
-    password_hash: "", // Optional, only send if user enters a new password
+    password_hash: "", // Optional: only send if new password entered
     status: userData.status || "active",
   });
 
@@ -15,44 +16,43 @@ const EditUserForm = ({ userData, onClose, onUserUpdated }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+    setErrors({});
+
     try {
-      // Prepare the data to send
       const updateData = {
         name: formData.name,
         email: formData.email,
-        status: formData.status
+        status: formData.status,
       };
-      
-      // Only include password if it was changed
+
       if (formData.password_hash) {
         updateData.password_hash = formData.password_hash;
       }
 
       const response = await fetch(`${API_URL}/${userData.id}`, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(updateData)
+        body: JSON.stringify(updateData),
       });
-  
+
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Update failed');
+        throw new Error(errorData.error || "Update failed");
       }
-  
+
       const updatedUser = await response.json();
       onUserUpdated(updatedUser);
       onClose();
     } catch (error) {
-      console.error('Update error:', error);
+      console.error("Update error:", error);
       setErrors({ general: error.message });
     } finally {
       setIsSubmitting(false);
@@ -118,7 +118,7 @@ const EditUserForm = ({ userData, onClose, onUserUpdated }) => {
           Cancel
         </Button>
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Updating...' : 'Update User'}
+          {isSubmitting ? "Updating..." : "Update User"}
         </Button>
       </div>
     </form>
