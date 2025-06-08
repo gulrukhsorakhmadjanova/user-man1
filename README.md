@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # User-Management
 
 ## User Management React App
@@ -55,3 +56,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 Leonardo Moura
 - [Personal Website](https://mouraleonardo.com)
 - [LinkedIn](https://www.linkedin.com/in/mouraleonardo/)
+=======
+# user-management
+>>>>>>> 87f3de1779b5c670b3aa13722b8a9b2dd82d3da7
