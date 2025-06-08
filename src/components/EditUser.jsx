@@ -1,166 +1,128 @@
-'use cliente';
 import React, { useState } from "react";
-import PropTypes from "prop-types";
-import axios from "axios";
 import { Button, Label, TextInput, Alert } from "flowbite-react";
-import { API_URL } from '../constants';
+import { API_URL } from "../constants";
 
-const UserForm = ({ onClose, onUserUpdated, userData }) => {
+const EditUserForm = ({ userData, onClose, onUserUpdated }) => {
   const [formData, setFormData] = useState({
-    firstName: userData ? userData.first_name : "",
-    lastName: userData ? userData.last_name : "",
-    username: userData ? userData.username : "",
-    email: userData ? userData.email : "",
-    password: "",
-    userId: userData ? userData.id : null, // Include userId in formData
+    name: userData.name || "",
+    email: userData.email || "",
+    password_hash: "", // Optional, only send if user enters a new password
+    status: userData.status || "active",
   });
+
   const [errors, setErrors] = useState({});
-  const [showSuccessAlert, setShowSuccessAlert] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-    setErrors({ ...errors, [e.target.name]: "" });
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = () => {
-    const validationErrors = validateForm();
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      return;
-    }
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    try {
+      // Prepare the data to send
+      const updateData = {
+        name: formData.name,
+        email: formData.email,
+        status: formData.status
+      };
+      
+      // Only include password if it was changed
+      if (formData.password_hash) {
+        updateData.password_hash = formData.password_hash;
+      }
 
-    // Perform API request to update user information
-    axios
-      .post(API_URL, {
-        action: "updateUser",
-        ...formData,
-      })
-      .then((response) => {
-        setShowSuccessAlert(true); // Show success message
-        onUserUpdated(formData); // Inform parent component about user update
-        onClose(); // Close the modal
-      })
-      .catch((error) => {
-        console.error("Error updating user:", error);
-        setErrors({ ...errors, general: "An unexpected error occurred." });
+      const response = await fetch(`${API_URL}/${userData.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData)
       });
-  };
-
-  const validateForm = () => {
-    const errors = {};
-    const { firstName, lastName, username, email, password } = formData;
-
-    // Validate first name
-    if (!firstName.trim()) {
-      errors.firstName = "First name is required";
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Update failed');
+      }
+  
+      const updatedUser = await response.json();
+      onUserUpdated(updatedUser);
+      onClose();
+    } catch (error) {
+      console.error('Update error:', error);
+      setErrors({ general: error.message });
+    } finally {
+      setIsSubmitting(false);
     }
-
-    // Validate last name
-    if (!lastName.trim()) {
-      errors.lastName = "Last name is required";
-    }
-
-    // Validate username
-    if (!username.trim()) {
-      errors.username = "Username is required";
-    }
-
-    // Validate email
-    if (!email.trim()) {
-      errors.email = "Email is required";
-    } else if (!isValidEmail(email)) {
-      errors.email = "Invalid email address";
-    }
-
-    // Validate password
-    if (!password.trim()) {
-      errors.password = "Password is required";
-    } else if (password.length < 8) {
-      errors.password = "Password must be at least 8 characters long";
-    }
-
-    return errors;
-  };
-
-  const isValidEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
   };
 
   return (
-    <div>
-      {showSuccessAlert && (
-        <Alert color="success">User updated successfully!</Alert>
-      )}
-      {errors.general && <div style={{ color: "red" }}>{errors.general}</div>}
-      <Label htmlFor="firstName" value="First Name" />
-      <TextInput
-        type="text"
-        id="firstName"
-        name="firstName"
-        value={formData.firstName}
-        onChange={handleInputChange}
-      />
-      {errors.firstName && (
-        <div style={{ color: "red" }}>{errors.firstName}</div>
-      )}
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {errors.general && <Alert color="failure">{errors.general}</Alert>}
 
-      <Label htmlFor="lastName" value="Last Name" />
-      <TextInput
-        type="text"
-        id="lastName"
-        name="lastName"
-        value={formData.lastName}
-        onChange={handleInputChange}
-      />
-      {errors.lastName && <div style={{ color: "red" }}>{errors.lastName}</div>}
-
-      <Label htmlFor="username" value="Username" />
-      <TextInput
-        type="text"
-        id="username"
-        name="username"
-        value={formData.username}
-        onChange={handleInputChange}
-      />
-      {errors.username && <div style={{ color: "red" }}>{errors.username}</div>}
-
-      <Label htmlFor="email" value="Email" />
-      <TextInput
-        type="text"
-        id="email"
-        name="email"
-        value={formData.email}
-        onChange={handleInputChange}
-      />
-      {errors.email && <div style={{ color: "red" }}>{errors.email}</div>}
-
-      <Label htmlFor="password" value="Password" />
-      <TextInput
-        type="password"
-        id="password"
-        name="password"
-        value={formData.password}
-        onChange={handleInputChange}
-      />
-      {errors.password && <div style={{ color: "red" }}>{errors.password}</div>}
-      <div className="grid grid-cols-3 gap-2 mt-4">
-        <div className="col-span-full md:col-span-1 flex justify-between">
-          <Button type="submit" onClick={handleSubmit}>
-            Edit User
-          </Button>
-          <Button type="button" color="gray" onClick={onClose}>
-            Cancel
-          </Button>
-        </div>
+      <div>
+        <Label htmlFor="name" value="Name" />
+        <TextInput
+          id="name"
+          name="name"
+          type="text"
+          value={formData.name}
+          onChange={handleChange}
+          required
+        />
       </div>
-    </div>
+
+      <div>
+        <Label htmlFor="email" value="Email" />
+        <TextInput
+          id="email"
+          name="email"
+          type="email"
+          value={formData.email}
+          onChange={handleChange}
+          required
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="password_hash" value="New Password (leave blank to keep current)" />
+        <TextInput
+          id="password_hash"
+          name="password_hash"
+          type="password"
+          value={formData.password_hash}
+          onChange={handleChange}
+          placeholder="••••••••"
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="status" value="Status" />
+        <select
+          id="status"
+          name="status"
+          value={formData.status}
+          onChange={handleChange}
+          className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+        >
+          <option value="active">Active</option>
+          <option value="blocked">Blocked</option>
+        </select>
+      </div>
+
+      <div className="flex justify-end space-x-2">
+        <Button type="button" color="gray" onClick={onClose} disabled={isSubmitting}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? 'Updating...' : 'Update User'}
+        </Button>
+      </div>
+    </form>
   );
 };
 
-UserForm.propTypes = {
-  onClose: PropTypes.func.isRequired,
-  userData: PropTypes.object,
-};
-
-export default UserForm;
+export default EditUserForm;

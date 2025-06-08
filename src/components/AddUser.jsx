@@ -1,169 +1,152 @@
-'use cliente';
 import React, { useState } from "react";
-import axios from "axios";
 import { Button, Label, TextInput, Alert } from "flowbite-react";
 import { API_URL } from '../constants';
 
 const UserForm = ({ onClose, onUserAdded }) => {
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    username: "",
+    name: "",
     email: "",
-    password: "",
+    password_hash: "",
+    status: "active" // Add default status
   });
   const [errors, setErrors] = useState({});
-  const [showSuccessAlert, setShowSuccessAlert] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-    setErrors({}); // Clear previous validation errors when the user changes the input
-  };
-
-  const handleSubmit = () => {
-    // Validate form inputs
-    const validationErrors = validateForm();
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    // Validate inputs
+    const newErrors = {};
+    if (!formData.name.trim()) newErrors.name = "Name is required";
+    if (!formData.email.trim()) newErrors.email = "Email is required";
+    if (!formData.password_hash) newErrors.password_hash = "Password is required";
+    
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      setIsSubmitting(false);
       return;
     }
 
-    // Perform API request to create a new user
-    axios
-      .post(API_URL, {
-        action: "createUser",
-        ...formData,
-      })
-      .then((response) => {
-        onUserAdded(response.data);
-        setShowSuccessAlert(true); // Show success message
-        onClose(); // Close the modal
-      })
-      .catch((error) => {
-        if (
-          error.response &&
-          error.response.data &&
-          error.response.data.error
-        ) {
-          setErrors({ general: error.response.data.error });
-        } else {
-          console.error("Error creating user:", error);
-          setErrors({ general: "An unexpected error occurred." });
-        }
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password_hash: formData.password_hash,
+          status: formData.status
+        })
       });
+
+      const responseText = await response.text();
+      
+      if (!response.ok) {
+        throw new Error(responseText.includes('{') 
+          ? JSON.parse(responseText).error 
+          : responseText);
+      }
+
+      const newUser = JSON.parse(responseText);
+      onUserAdded(newUser);
+      onClose();
+    } catch (error) {
+      console.error('API Error:', error);
+      setErrors({ 
+        general: error.message.includes('Unexpected token')
+          ? "Server error - check console"
+          : error.message 
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const validateForm = () => {
-    const errors = {};
-    const { firstName, lastName, username, email, password } = formData;
-
-    // Validate first name
-    if (!firstName.trim()) {
-      errors.firstName = "First name is required";
-    }
-
-    // Validate last name
-    if (!lastName.trim()) {
-      errors.lastName = "Last name is required";
-    }
-
-    // Validate username
-    if (!username.trim()) {
-      errors.username = "Username is required";
-    }
-
-    // Validate email
-    if (!email.trim()) {
-      errors.email = "Email is required";
-    } else if (!isValidEmail(email)) {
-      errors.email = "Invalid email address";
-    }
-
-    // Validate password
-    if (!password.trim()) {
-      errors.password = "Password is required";
-    } else if (password.trim().length < 8) {
-      errors.password = "Password must be at least 8 characters long";
-    }
-
-    return errors;
-  };
-
-  const isValidEmail = (email) => {
-    // Basic email validation regex
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    setErrors(prev => ({ ...prev, [name]: "" }));
   };
 
   return (
-    <div>
-      {showSuccessAlert && (
-        <Alert color="success">User added successfully!</Alert>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {errors.general && (
+        <Alert color="failure" className="mb-4">
+          {errors.general}
+        </Alert>
       )}
-      {errors.general && <div style={{ color: "red" }}>{errors.general}</div>}
-      <Label htmlFor="firstName" value="First Name" />
-      <TextInput
-        type="text"
-        id="firstName"
-        name="firstName"
-        value={formData.firstName}
-        onChange={handleInputChange}
-      />
-      {errors.firstName && (
-        <div style={{ color: "red" }}>{errors.firstName}</div>
-      )}
-
-      <Label htmlFor="lastName" value="Last Name" />
-      <TextInput
-        type="text"
-        id="lastName"
-        name="lastName"
-        value={formData.lastName}
-        onChange={handleInputChange}
-      />
-      {errors.lastName && <div style={{ color: "red" }}>{errors.lastName}</div>}
-
-      <Label htmlFor="username" value="Username" />
-      <TextInput
-        type="text"
-        id="username"
-        name="username"
-        value={formData.username}
-        onChange={handleInputChange}
-      />
-      {errors.username && <div style={{ color: "red" }}>{errors.username}</div>}
-
-      <Label htmlFor="email" value="Email" />
-      <TextInput
-        type="text"
-        id="email"
-        name="email"
-        value={formData.email}
-        onChange={handleInputChange}
-      />
-      {errors.email && <div style={{ color: "red" }}>{errors.email}</div>}
-
-      <Label htmlFor="password" value="Password" />
-      <TextInput
-        type="password"
-        id="password"
-        name="password"
-        value={formData.password}
-        onChange={handleInputChange}
-      />
-      {errors.password && <div style={{ color: "red" }}>{errors.password}</div>}
-      <div className="grid grid-cols-3 gap-2 mt-4">
-        <div className="col-span-full md:col-span-1 flex justify-between">
-          <Button type="submit" onClick={handleSubmit}>
-            Add User
-          </Button>
-          <Button type="button" color="gray" onClick={onClose}>
-            Cancel
-          </Button>{" "}
-          {/* Fixed onClick handler */}
-        </div>
+      
+      <div>
+        <Label htmlFor="name" value="Full Name" />
+        <TextInput
+          id="name"
+          name="name"
+          value={formData.name}
+          onChange={handleChange}
+          color={errors.name ? "failure" : "gray"}
+          helperText={errors.name}
+        />
       </div>
-    </div>
+      
+      <div>
+        <Label htmlFor="email" value="Email" />
+        <TextInput
+          id="email"
+          name="email"
+          type="email"
+          value={formData.email}
+          onChange={handleChange}
+          color={errors.email ? "failure" : "gray"}
+          helperText={errors.email}
+        />
+      </div>
+      
+      <div>
+        <Label htmlFor="password_hash" value="Password" />
+        <TextInput
+          id="password_hash"
+          name="password_hash"
+          type="password"
+          value={formData.password_hash}
+          onChange={handleChange}
+          color={errors.password_hash ? "failure" : "gray"}
+          helperText={errors.password_hash}
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="status" value="Status" />
+        <select
+          id="status"
+          name="status"
+          value={formData.status}
+          onChange={handleChange}
+          className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+        >
+          <option value="active">Active</option>
+          <option value="blocked">Blocked</option>
+        </select>
+      </div>
+      
+      <div className="flex justify-end gap-2 pt-4">
+        <Button 
+          color="gray" 
+          onClick={onClose}
+          disabled={isSubmitting}
+        >
+          Cancel
+        </Button>
+        <Button 
+          type="submit" 
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? 'Adding...' : 'Add User'}
+        </Button>
+      </div>
+    </form>
   );
 };
 
