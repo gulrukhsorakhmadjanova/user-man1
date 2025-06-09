@@ -59,7 +59,7 @@ router.put('/:id', (req, res) => {
     return res.status(400).json({ error: 'Name and email are required' });
   }
 
-  // Optional: check if email is unique for other users
+//Check if email is unique for other users
   const emailExists = users.some(u => u.email === email && u.id !== id);
   if (emailExists) {
     return res.status(400).json({ error: 'Email already in use by another user' });
