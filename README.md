@@ -5,7 +5,7 @@
 
 A responsive user management dashboard with full CRUD functionality, developed by Gulrukhsor Akhmadjanova.
 Live Demo : https://user-man1-seven.vercel.app/
-> **Note**: This project was adapted from an original work by Leonardo Moura.  
+> **Note**: This project was adapted from an original work by Leonardo Moura [https://github.com/mouraleonardo/user-management-react-app].  
 > All modifications and current implementation are my own.
 
 ## Features
