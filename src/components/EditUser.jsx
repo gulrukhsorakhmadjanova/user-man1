@@ -7,7 +7,7 @@ const EditUserForm = ({ userData, onClose, onUserUpdated }) => {
   const [formData, setFormData] = useState({
     name: userData.name || "",
     email: userData.email || "",
-    password_hash: "", // Optional: only send if new password entered
+    password_hash: "", 
     status: userData.status || "active",
   });
 
