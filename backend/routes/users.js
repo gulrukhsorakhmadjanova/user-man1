@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 
 // In-memory users array for demo purposes
-// Replace this with your DB logic
 let users = [
   { id: 1, name: 'Alice', email: 'alice@example.com', status: 'active', password_hash: 'hashedpassword1' },
   { id: 2, name: 'Bob', email: 'bob@example.com', status: 'blocked', password_hash: 'hashedpassword2' },
@@ -86,7 +85,7 @@ router.delete('/:id', (req, res) => {
   if (userIndex === -1) return res.status(404).json({ error: 'User not found' });
 
   users.splice(userIndex, 1);
-  res.status(204).send(); // No content on successful deletion
+  res.status(204).send(); 
 });
 
 module.exports = router;
